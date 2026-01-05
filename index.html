@@ -119,6 +119,7 @@
       border-radius:999px;
       color:var(--muted);
       font-size:12px;
+      text-decoration:none;
       background: rgba(255,255,255,.04);
     }
     h1{margin:0;font-size:22px;letter-spacing:.5px}
@@ -265,6 +266,24 @@
     .msg.bad{border-color: rgba(251,113,133,.35); color: rgba(251,113,133,.95); background: rgba(251,113,133,.08)}
     .hidden{display:none!important}
     .summary{ padding: 16px; }
+    .bonus{
+      margin-top: 14px;
+      padding: 12px;
+      border:1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,.18);
+    }
+    .bonusFrameWrap{ margin-top: 10px; }
+    .bonusFrame{
+      width:100%;
+      height:640px;
+      border:1px solid var(--border);
+      border-radius: 12px;
+      background:#f95240;
+    }
+    @media (max-width: 520px){
+      .bonusFrame{ height: 520px; }
+    }
     table{ width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th, td{ border-bottom: 1px solid var(--border); padding: 8px 6px; vertical-align: top; }
     th{ color: var(--muted); font-weight: 700; text-align:left; }
@@ -382,7 +401,7 @@
 <body>
 <header>
   <div class="title">
-    <h1>題庫（翰林）單元三＋單元四｜考題闖關遊戲</h1>
+    <h1>考題闖關遊戲</h1>
     <span class="badge">離線可用｜單檔 HTML</span>
     <span class="badge">題庫：單元三 50 題＋單元四 50 題</span>
   </div>
@@ -585,6 +604,23 @@
 
       <div id="wrongWrap" class="msg" style="margin-top:10px">
         <div class="small">沒有錯題，表現很好。</div>
+      </div>
+
+      <div id="bonusWrap" class="bonus hidden">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <div>
+            <div class="small">獎勵關卡</div>
+            <div style="font-weight:700">疊塔小遊戲</div>
+          </div>
+          <div class="row">
+            <button class="ghost" id="btnBonusToggle" type="button">展開遊戲</button>
+            <a class="badge" id="bonusNewTab" href="bonus/tower/index.html" target="_blank" rel="noopener">新視窗開啟</a>
+          </div>
+        </div>
+        <div class="small" id="bonusNote" style="margin-top:6px;">分數達 85 以上即可解鎖。遊戲來源：iamkun/tower_game（MIT）。</div>
+        <div id="bonusFrameWrap" class="bonusFrameWrap hidden">
+          <iframe id="bonusFrame" class="bonusFrame" title="獎勵關卡：疊塔遊戲" loading="lazy" src="about:blank" data-src="bonus/tower/index.html"></iframe>
+        </div>
       </div>
 
       <div class="row" style="margin-top:12px">
@@ -6556,6 +6592,11 @@ var sumScore = $("#sumScore");
 var sumAcc   = $("#sumAcc");
 var sumTime  = $("#sumTime");
 var wrongWrap= $("#wrongWrap");
+var bonusWrap = $("#bonusWrap");
+var bonusNote = $("#bonusNote");
+var bonusFrameWrap = $("#bonusFrameWrap");
+var bonusFrame = $("#bonusFrame");
+var btnBonusToggle = $("#btnBonusToggle");
 
 // Combat UI
 var stageChip = $("#stageChip");
@@ -6796,6 +6837,45 @@ function initSubjectUnitSync(){
   syncUnitFromSubject();
 }
 
+var BONUS_UNLOCK_SCORE = 85;
+
+function isBonusUnlocked(){
+  if(!state || !state.qlist || !state.qlist.length) return false;
+  return state.score >= BONUS_UNLOCK_SCORE;
+}
+function ensureBonusFrameLoaded(){
+  if(!bonusFrame) return;
+  var src = bonusFrame.getAttribute("src") || "";
+  if(src && src !== "about:blank") return;
+  var ds = bonusFrame.getAttribute("data-src");
+  if(ds) bonusFrame.setAttribute("src", ds);
+}
+function setBonusOpen(open){
+  if(!bonusFrameWrap || !btnBonusToggle) return;
+  if(open){
+    bonusFrameWrap.classList.remove("hidden");
+    btnBonusToggle.textContent = "收合遊戲";
+    ensureBonusFrameLoaded();
+  }else{
+    bonusFrameWrap.classList.add("hidden");
+    btnBonusToggle.textContent = "展開遊戲";
+  }
+}
+function updateBonusUI(){
+  if(!bonusWrap) return;
+  var unlocked = isBonusUnlocked();
+  bonusWrap.classList.remove("hidden");
+  if(bonusNote){
+    if(unlocked){
+      bonusNote.textContent = "已解鎖：分數達 85 以上。遊戲來源：iamkun/tower_game（MIT）。";
+    }else{
+      bonusNote.textContent = "分數達 85 以上即可解鎖。";
+    }
+  }
+  if(btnBonusToggle) btnBonusToggle.disabled = !unlocked;
+  if(!unlocked) setBonusOpen(false);
+}
+
 function resetUI(){
   kpiScore.textContent = "0";
   kpiAcc.textContent = "0/0";
@@ -6819,6 +6899,8 @@ function resetUI(){
   if(enemyChip){ enemyChip.textContent = "敵人：5/5"; }
   if(hpPlayerBar){ hpPlayerBar.style.width = "100%"; }
   if(hpEnemyBar){ hpEnemyBar.style.width = "100%"; }
+  if(bonusWrap){ bonusWrap.classList.add("hidden"); }
+  setBonusOpen(false);
 }
 
 function stopTimer(){
@@ -7499,6 +7581,8 @@ function finish(){
       + "<div class='small' style='margin-top:8px'>建議：可切換到「錯題本／錯題題組」模式重練，並搭配解析理解。</div>";
   }
 
+  updateBonusUI();
+
   quizPane.classList.add("hidden");
   summaryPane.classList.remove("hidden");
 }
@@ -7621,6 +7705,15 @@ addTap(btnBack, function(){
   summaryPane.classList.add("hidden");
   quizPane.classList.remove("hidden");
 });
+
+if(btnBonusToggle && !btnBonusToggle._boundBonus){
+  btnBonusToggle._boundBonus = true;
+  addTap(btnBonusToggle, function(){
+    if(btnBonusToggle.disabled) return;
+    var isOpen = bonusFrameWrap && !bonusFrameWrap.classList.contains("hidden");
+    setBonusOpen(!isOpen);
+  });
+}
 
 
 if(btnNextSet){
