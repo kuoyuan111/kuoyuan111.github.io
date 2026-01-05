@@ -187,7 +187,7 @@
       color: var(--muted);
       font-size: 13px;
     }
-    .ctrl input[type="number"], .ctrl select{
+    .ctrl input[type="number"], .ctrl input[type="text"], .ctrl input[type="password"], .ctrl select{
       width: 150px;
       padding: 6px 8px;
       border-radius: 10px;
@@ -407,7 +407,9 @@
 
     /* Reduce glare: dark controls in left panel */
     .ctrl select,
-    .ctrl input[type="number"]{
+    .ctrl input[type="number"],
+    .ctrl input[type="text"],
+    .ctrl input[type="password"]{
       background: rgba(0,0,0,.35) !important;
       color: rgba(255,255,255,.92) !important;
       border: 1px solid rgba(255,255,255,.18) !important;
@@ -429,7 +431,9 @@
       background-repeat: no-repeat;
     }
     .ctrl select:focus,
-    .ctrl input[type="number"]:focus{
+    .ctrl input[type="number"]:focus,
+    .ctrl input[type="text"]:focus,
+    .ctrl input[type="password"]:focus{
       outline: none !important;
       border-color: rgba(59,130,246,.55) !important;
     }
@@ -558,12 +562,31 @@
           <select id="fontScale">
             <option value="S">小</option>
             <option value="M">中</option>
-            <option value="L" selected>大</option>
+            <option value="L">大</option>
             <option value="XL">特大</option>
             <option value="XXL">超大</option>
             <option value="XXXL" selected>極大</option>
           </select>
         </label>
+
+        <div class="ctrl">
+          <label>暱稱
+            <input id="remoteUser" type="text" placeholder="輸入暱稱" />
+          </label>
+          <label>PIN
+            <input id="remotePin" type="password" inputmode="numeric" placeholder="4-8 位數" />
+          </label>
+          <label class="row" style="align-items:center; justify-content:flex-start; gap:10px">
+            <input id="remoteRemember" type="checkbox" checked />
+            <span>記住登入</span>
+          </label>
+          <div class="row">
+            <button class="ghost" id="btnRemoteLogin" type="button">登入</button>
+            <button class="ghost" id="btnRemoteLogout" type="button">登出</button>
+            <button class="ghost" id="btnRemoteHistory" type="button">查看歷史</button>
+          </div>
+          <div class="small" id="remoteStatus">尚未登入</div>
+        </div>
 
         <label>題數
           <input id="count" type="number" min="5" max="100" value="30" />
@@ -7062,6 +7085,17 @@ var bonusMemoryFrameWrap = $("#bonusMemoryFrameWrap");
 var bonusMemoryFrame = $("#bonusMemoryFrame");
 var bonusMemoryLoading = $("#bonusMemoryLoading");
 var btnMemoryToggle = $("#btnMemoryToggle");
+var remoteUserIn = $("#remoteUser");
+var remotePinIn = $("#remotePin");
+var remoteRememberCk = $("#remoteRemember");
+var btnRemoteLogin = $("#btnRemoteLogin");
+var btnRemoteLogout = $("#btnRemoteLogout");
+var btnRemoteHistory = $("#btnRemoteHistory");
+var remoteStatus = $("#remoteStatus");
+var historyBackdrop = $("#historyBackdrop");
+var historyWrap = $("#historyWrap");
+var btnHistoryClose = $("#btnHistoryClose");
+var btnHistoryRefresh = $("#btnHistoryRefresh");
 var btnReviewNotes = $("#btnReviewNotes");
 var reviewBackdrop = $("#reviewBackdrop");
 var reviewText = $("#reviewText");
@@ -7313,11 +7347,208 @@ function initSubjectUnitSync(){
 var BONUS_UNLOCK_SCORE = 85;
 var BONUS_PASS = "660726";
 var bonusPassUnlocked = false;
+var REMOTE_ENDPOINT = "https://script.google.com/macros/s/AKfycbyLv4hyAZReYd6i_fZ3utdlvVY7km6-g5XjJ9ttD6bKsUPGL3Cr69JT3pzEX8YqwrPS/exec";
+var REMOTE_KEY = "AKfycbyLv4hyAZReYd6i_fZ3utdlvVY7km6-g5XjJ9ttD6bKsUPGL3Cr69JT3pzEX8YqwrPS";
+var REMOTE_AUTH_KEY = "quizRemoteAuthV1";
+var remoteAuth = { user:"", pin:"", remember:true };
 
 function isBonusUnlocked(){
   if(bonusPassUnlocked) return true;
   if(!state || !state.qlist || !state.qlist.length) return false;
   return state.score >= BONUS_UNLOCK_SCORE;
+}
+
+function setRemoteStatus(text, ok){
+  if(!remoteStatus) return;
+  remoteStatus.textContent = text;
+  remoteStatus.style.color = ok ? "var(--good)" : "var(--muted)";
+}
+function loadRemoteAuth(){
+  var saved = null;
+  try{
+    if(window.localStorage){
+      var s = localStorage.getItem(REMOTE_AUTH_KEY);
+      if(s) saved = JSON.parse(s);
+    }
+  }catch(e){ saved = null; }
+  if(saved && saved.user && saved.pin){
+    remoteAuth.user = String(saved.user);
+    remoteAuth.pin = String(saved.pin);
+    remoteAuth.remember = !!saved.remember;
+  }
+  if(remoteUserIn) remoteUserIn.value = remoteAuth.user || "";
+  if(remotePinIn) remotePinIn.value = remoteAuth.pin || "";
+  if(remoteRememberCk) remoteRememberCk.checked = (saved && typeof saved.remember!=="undefined") ? !!saved.remember : true;
+  updateRemoteUI();
+}
+function saveRemoteAuth(){
+  if(!remoteAuth.remember) return;
+  try{
+    if(window.localStorage){
+      localStorage.setItem(REMOTE_AUTH_KEY, JSON.stringify({
+        user: remoteAuth.user,
+        pin: remoteAuth.pin,
+        remember: remoteAuth.remember
+      }));
+    }
+  }catch(e){}
+}
+function clearRemoteAuth(){
+  try{
+    if(window.localStorage){
+      localStorage.removeItem(REMOTE_AUTH_KEY);
+    }
+  }catch(e){}
+}
+function updateRemoteUI(){
+  if(remoteAuth.user && remoteAuth.pin){
+    setRemoteStatus("已登入：" + remoteAuth.user, true);
+  }else{
+    setRemoteStatus("尚未登入", false);
+  }
+}
+function remoteLogin(){
+  var user = remoteUserIn ? String(remoteUserIn.value||"").trim() : "";
+  var pin = remotePinIn ? String(remotePinIn.value||"").trim() : "";
+  if(!user || !pin){
+    setRemoteStatus("請輸入暱稱與 PIN", false);
+    return;
+  }
+  remoteAuth.user = user;
+  remoteAuth.pin = pin;
+  remoteAuth.remember = remoteRememberCk ? !!remoteRememberCk.checked : true;
+  if(remoteAuth.remember) saveRemoteAuth();
+  else clearRemoteAuth();
+  updateRemoteUI();
+}
+function remoteLogout(){
+  remoteAuth.user = "";
+  remoteAuth.pin = "";
+  remoteAuth.remember = true;
+  if(remoteUserIn) remoteUserIn.value = "";
+  if(remotePinIn) remotePinIn.value = "";
+  if(remoteRememberCk) remoteRememberCk.checked = true;
+  clearRemoteAuth();
+  updateRemoteUI();
+}
+function isRemoteReady(){
+  return !!(REMOTE_ENDPOINT && REMOTE_KEY && remoteAuth.user && remoteAuth.pin);
+}
+function buildRemotePayload(){
+  var total = (state && state.qlist) ? state.qlist.length : 0;
+  var acc = total ? Math.round((state.correct/total)*100) : 0;
+  var usedSec = state.startTs ? Math.round((Date.now()-state.startTs)/1000) : 0;
+  return {
+    action: "save",
+    key: REMOTE_KEY,
+    user: remoteAuth.user,
+    pin: remoteAuth.pin,
+    subject: (subjectSel && subjectSel.value) ? subjectSel.value : "",
+    unit: (unitSel && unitSel.value) ? unitSel.value : "",
+    mode: state.mode || "",
+    score: state.score || 0,
+    correct: state.correct || 0,
+    total: total,
+    accuracy: acc,
+    timeSec: usedSec,
+    stage: state.stage || 0
+  };
+}
+function sendScoreToRemote(){
+  if(!isRemoteReady()) return;
+  var payload = buildRemotePayload();
+  try{
+    fetch(REMOTE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      if(!res || !res.ok) throw new Error("bad");
+      return res.json().catch(function(){ return {}; });
+    }).then(function(data){
+      if(data && data.ok){
+        setRemoteStatus("已同步成績", true);
+      }else{
+        setRemoteStatus("同步失敗", false);
+      }
+    }).catch(function(){
+      setRemoteStatus("同步失敗", false);
+    });
+  }catch(e){
+    setRemoteStatus("同步失敗", false);
+  }
+}
+function openHistoryModal(){
+  if(!historyBackdrop) return;
+  historyBackdrop.style.display = "flex";
+}
+function closeHistoryModal(){
+  if(!historyBackdrop) return;
+  historyBackdrop.style.display = "none";
+}
+function formatHistoryList(items){
+  if(!items || !items.length){
+    return "<div class='small'>沒有紀錄。</div>";
+  }
+  var rows = "";
+  for(var i=0;i<items.length;i++){
+    var it = items[i];
+    var time = escapeHtml(String(it.time || it.timestamp || ""));
+    var label = String(it.subject || "");
+    if(it.unit) label += " / " + it.unit;
+    var acc = (typeof it.accuracy!=="undefined") ? (String(it.accuracy) + "%") : "";
+    rows += "<tr>"
+      + "<td>" + (i+1) + "</td>"
+      + "<td>" + time + "</td>"
+      + "<td>" + escapeHtml(label) + "</td>"
+      + "<td>" + escapeHtml(String(it.mode || "")) + "</td>"
+      + "<td>" + escapeHtml(String(it.score || 0)) + "</td>"
+      + "<td>" + escapeHtml(String(it.correct || 0)) + "/" + escapeHtml(String(it.total || 0)) + "</td>"
+      + "<td>" + escapeHtml(acc) + "</td>"
+      + "<td>" + escapeHtml(formatTime(parseInt(it.timeSec||0,10))) + "</td>"
+      + "<td>" + escapeHtml(String(it.stage || 0)) + "</td>"
+      + "</tr>";
+  }
+  return "<table><thead><tr>"
+    + "<th>#</th>"
+    + "<th>時間</th>"
+    + "<th>科目/題組</th>"
+    + "<th>模式</th>"
+    + "<th>分數</th>"
+    + "<th>正確</th>"
+    + "<th>正確率</th>"
+    + "<th>用時</th>"
+    + "<th>關卡</th>"
+    + "</tr></thead><tbody>" + rows + "</tbody></table>";
+}
+function fetchRemoteHistory(){
+  if(!isRemoteReady()){
+    setRemoteStatus("請先登入", false);
+    return;
+  }
+  if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取中...</div>";
+  openHistoryModal();
+  var url = REMOTE_ENDPOINT
+    + "?action=list&key=" + encodeURIComponent(REMOTE_KEY)
+    + "&user=" + encodeURIComponent(remoteAuth.user)
+    + "&pin=" + encodeURIComponent(remoteAuth.pin)
+    + "&limit=50";
+  try{
+    fetch(url).then(function(res){
+      if(!res || !res.ok) throw new Error("bad");
+      return res.json().catch(function(){ return {}; });
+    }).then(function(data){
+      if(data && data.ok){
+        if(historyWrap) historyWrap.innerHTML = formatHistoryList(data.items || []);
+      }else{
+        if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+      }
+    }).catch(function(){
+      if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+    });
+  }catch(e){
+    if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+  }
 }
 function ensureBonusFrameLoaded(){
   if(!bonusFrame) return;
@@ -8257,6 +8488,8 @@ function finish(){
   sumAcc.textContent = "正確率：" + acc + "%（" + state.correct + "/" + total + "）";
   sumTime.textContent = "用時：" + formatTime(usedSec) + "｜最高關卡：" + state.stage;
 
+  sendScoreToRemote();
+
 
   // Wrong-set: show next set button if there are remaining questions
   if(btnNextSet){
@@ -8434,6 +8667,33 @@ addTap(btnBack, function(){
   setMemoryOpen(false);
 });
 
+if(btnRemoteLogin && !btnRemoteLogin._boundRemote){
+  btnRemoteLogin._boundRemote = true;
+  addTap(btnRemoteLogin, function(){ remoteLogin(); });
+}
+if(btnRemoteLogout && !btnRemoteLogout._boundRemote){
+  btnRemoteLogout._boundRemote = true;
+  addTap(btnRemoteLogout, function(){ remoteLogout(); });
+}
+if(btnRemoteHistory && !btnRemoteHistory._boundRemote){
+  btnRemoteHistory._boundRemote = true;
+  addTap(btnRemoteHistory, function(){ fetchRemoteHistory(); });
+}
+if(btnHistoryClose && !btnHistoryClose._boundHistory){
+  btnHistoryClose._boundHistory = true;
+  addTap(btnHistoryClose, function(){ closeHistoryModal(); });
+}
+if(btnHistoryRefresh && !btnHistoryRefresh._boundHistory){
+  btnHistoryRefresh._boundHistory = true;
+  addTap(btnHistoryRefresh, function(){ fetchRemoteHistory(); });
+}
+if(historyBackdrop && !historyBackdrop._boundHistoryBackdrop){
+  historyBackdrop._boundHistoryBackdrop = true;
+  historyBackdrop.addEventListener("click", function(e){
+    if(e.target === historyBackdrop) closeHistoryModal();
+  });
+}
+
 if(btnBonusToggle && !btnBonusToggle._boundBonus){
   btnBonusToggle._boundBonus = true;
   addTap(btnBonusToggle, function(){
@@ -8571,6 +8831,7 @@ initFontScale();
 initWrongBook();
 initSubjectUnitSync();
 updateVersionBadge();
+loadRemoteAuth();
 
 
 
@@ -8734,6 +8995,25 @@ document.addEventListener("DOMContentLoaded", function(){
           <button id="btnReviewDownload" class="ghost" type="button">下載 .md</button>
         </div>
         <textarea id="reviewText" class="reviewTextarea" spellcheck="false"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 遠端成績紀錄彈窗 -->
+  <div id="historyBackdrop" class="reviewModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="reviewModal">
+      <div class="reviewModalHeader">
+        <h3 id="historyTitle">遠端成績紀錄</h3>
+        <button id="btnHistoryClose" class="btn" type="button">關閉</button>
+      </div>
+      <div class="reviewModalBody">
+        <p>顯示該暱稱的最近成績。</p>
+        <div class="row" style="margin:10px 0;">
+          <button id="btnHistoryRefresh" class="ghost" type="button">重新整理</button>
+        </div>
+        <div id="historyWrap" class="msg">
+          <div class="small">尚無紀錄。</div>
+        </div>
       </div>
     </div>
   </div>
