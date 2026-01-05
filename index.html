@@ -138,6 +138,13 @@
       grid-template-columns: 320px 1fr;
       gap: 14px;
     }
+    body.play-mode main{
+      grid-template-columns: 1fr;
+      max-width: 100%;
+    }
+    body.play-mode main > section:first-child{
+      display:none;
+    }
     @media (max-width: 900px){ main{grid-template-columns: 1fr} }
     .panel{
       background: rgba(255,255,255,.04);
@@ -273,13 +280,24 @@
       border-radius: 12px;
       background: rgba(0,0,0,.18);
     }
-    .bonusFrameWrap{ margin-top: 10px; }
+    .bonusFrameWrap{ margin-top: 10px; position: relative; }
     .bonusFrame{
       width:100%;
       height:640px;
       border:1px solid var(--border);
       border-radius: 12px;
       background:#f95240;
+    }
+    .bonusLoading{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      background: rgba(0,0,0,.25);
+      border-radius: 12px;
+      pointer-events:none;
     }
     @media (max-width: 520px){
       .bonusFrame{ height: 520px; }
@@ -502,6 +520,8 @@
             <option value="M">中</option>
             <option value="L" selected>大</option>
             <option value="XL">特大</option>
+            <option value="XXL">超大</option>
+            <option value="XXXL" selected>極大</option>
           </select>
         </label>
 
@@ -609,6 +629,7 @@
       <div class="foot">
         <button id="btnNext" disabled>下一題</button>
         <button id="btnReveal" class="ghost" disabled>顯示答案</button>
+        <button id="btnFinishEarly" class="danger" disabled>結束並看成績</button>
       </div>
 
       <div class="msg hidden" id="feedback"></div>
@@ -643,6 +664,7 @@
         <div class="small" id="bonusNote" style="margin-top:6px;">分數達 85 以上即可解鎖。遊戲來源：iamkun/tower_game（MIT）。</div>
         <div id="bonusFrameWrap" class="bonusFrameWrap hidden">
           <iframe id="bonusFrame" class="bonusFrame" title="獎勵關卡：疊塔遊戲" loading="lazy" src="about:blank" data-src="bonus/tower/index.html"></iframe>
+          <div id="bonusLoading" class="bonusLoading">載入中...</div>
         </div>
       </div>
 
@@ -6323,6 +6345,7 @@ var GEN_BANK = [
   }
 ];
 var ALL_BANK = QUESTION_BANK.concat(GEN_BANK);
+var BANK_INDEX = {};
 
 // Default subject tagging (future-proof for multiple subjects)
 (function(){
@@ -6331,10 +6354,17 @@ var ALL_BANK = QUESTION_BANK.concat(GEN_BANK);
       if(!arr[i].subject) arr[i].subject = "社會";
     }
   }
+  function buildIndex(arr){
+    for(var i=0;i<arr.length;i++){
+      var q = arr[i];
+      if(q && q.id) BANK_INDEX[q.id] = q;
+    }
+  }
   try{
     if(typeof QUESTION_BANK!=="undefined") tag(QUESTION_BANK);
     if(typeof GEN_BANK!=="undefined") tag(GEN_BANK);
     if(typeof ALL_BANK!=="undefined") tag(ALL_BANK);
+    if(typeof ALL_BANK!=="undefined") buildIndex(ALL_BANK);
   }catch(e){}
 })(); 
 
@@ -6392,6 +6422,24 @@ function updateVersionBadge(){
     el.textContent = "版本：" + raw;
   }else{
     el.textContent = "版本：--";
+  }
+}
+
+function setBonusLoading(active){
+  if(!bonusLoading) return;
+  if(active){
+    bonusLoading.classList.remove("hidden");
+  }else{
+    bonusLoading.classList.add("hidden");
+  }
+}
+
+function setPlayMode(active){
+  if(!document.body) return;
+  if(active){
+    document.body.classList.add("play-mode");
+  }else{
+    document.body.classList.remove("play-mode");
   }
 }
 
@@ -6521,11 +6569,9 @@ function migrateWrongBookIfNeeded(){
     if(!legacy.hasOwnProperty(id)) continue;
 
     var subj = "社會";
-    for(var j=0;j<ALL_BANK.length;j++){
-      if(ALL_BANK[j].id === id){
-        subj = normSubj(ALL_BANK[j].subject || "社會");
-        break;
-      }
+    var qq = BANK_INDEX[id];
+    if(qq){
+      subj = normSubj(qq.subject || "社會");
     }
 
     if(subj==="自然"){
@@ -6571,12 +6617,7 @@ function getWrongQuestionsFromBank(wb){
   var out = [];
   for(var i=0;i<ids.length;i++){
     var id = ids[i];
-    for(var j=0;j<ALL_BANK.length;j++){
-      if(ALL_BANK[j].id === id){
-        out.push(ALL_BANK[j]);
-        break;
-      }
-    }
+    if(BANK_INDEX[id]) out.push(BANK_INDEX[id]);
   }
   return out;
 }
@@ -6610,6 +6651,7 @@ var btnNext  = $("#btnNext");
 var btnReveal= $("#btnReveal");
 var btnHint  = $("#btnHint");
 var btn5050  = $("#btn5050");
+var btnFinishEarly = $("#btnFinishEarly");
 
 var btnRetry = $("#btnRetry");
 var btnBack  = $("#btnBack");
@@ -6638,6 +6680,7 @@ var bonusWrap = $("#bonusWrap");
 var bonusNote = $("#bonusNote");
 var bonusFrameWrap = $("#bonusFrameWrap");
 var bonusFrame = $("#bonusFrame");
+var bonusLoading = $("#bonusLoading");
 var btnBonusToggle = $("#btnBonusToggle");
 var btnReviewNotes = $("#btnReviewNotes");
 var reviewBackdrop = $("#reviewBackdrop");
@@ -6723,6 +6766,8 @@ function applyFontScale(scale){
   if(scale==="S"){ q=18; opt=15; optC=14; meta=13; }
   else if(scale==="M"){ q=20; opt=16; optC=15; meta=13; }
   else if(scale==="XL"){ q=24; opt=20; optC=18; meta=15; }
+  else if(scale==="XXL"){ q=26; opt=22; optC=20; meta=16; }
+  else if(scale==="XXXL"){ q=28; opt=24; optC=22; meta=17; }
 
   var root = document.documentElement;
   if(root && root.style && root.style.setProperty){
@@ -6786,7 +6831,7 @@ function initFontScale(){
     if(window.localStorage){ saved = localStorage.getItem("quizFontScale"); }
   }catch(e){ saved = null; }
 
-  var v = (fontSel && fontSel.value) ? fontSel.value : "L";
+  var v = (fontSel && fontSel.value) ? fontSel.value : "XXXL";
   if(saved && fontSel){
     fontSel.value = saved;
     v = saved;
@@ -6896,7 +6941,9 @@ function ensureBonusFrameLoaded(){
   var src = bonusFrame.getAttribute("src") || "";
   if(src && src !== "about:blank") return;
   var ds = bonusFrame.getAttribute("data-src");
-  if(ds) bonusFrame.setAttribute("src", ds);
+  if(ds){
+    bonusFrame.setAttribute("src", ds);
+  }
 }
 function setBonusOpen(open){
   if(!bonusFrameWrap || !btnBonusToggle) return;
@@ -6904,6 +6951,11 @@ function setBonusOpen(open){
     bonusFrameWrap.classList.remove("hidden");
     btnBonusToggle.textContent = "收合遊戲";
     ensureBonusFrameLoaded();
+    if(bonusFrame && bonusFrame._loaded){
+      setBonusLoading(false);
+    }else{
+      setBonusLoading(true);
+    }
   }else{
     bonusFrameWrap.classList.add("hidden");
     btnBonusToggle.textContent = "展開遊戲";
@@ -7040,6 +7092,7 @@ function resetUI(){
   btnNext.disabled = true;
   btnReveal.disabled = true;
   btnEnd.disabled = true;
+  if(btnFinishEarly) btnFinishEarly.disabled = true;
   if(stageChip){ stageChip.textContent = "關卡：1"; }
   if(lifeChip){ lifeChip.textContent = "生命：5/5"; }
   if(enemyChip){ enemyChip.textContent = "敵人：5/5"; }
@@ -7047,6 +7100,7 @@ function resetUI(){
   if(hpEnemyBar){ hpEnemyBar.style.width = "100%"; }
   if(bonusWrap){ bonusWrap.classList.add("hidden"); }
   setBonusOpen(false);
+  setPlayMode(false);
 }
 
 function stopTimer(){
@@ -7306,8 +7360,9 @@ function renderQuestion(){
   if(btnHint) btnHint.disabled = false;
   if(btn5050) btn5050.disabled = false;
   btnNext.disabled = true;
-  btnReveal.disabled = false;
+  btnReveal.disabled = (state.mode === "exam");
   btnEnd.disabled = false;
+  if(btnFinishEarly) btnFinishEarly.disabled = false;
   clearMultiPicked();
 
   if(q.type==="多選"){
@@ -7315,7 +7370,6 @@ function renderQuestion(){
       (function(idx){
         var b = document.createElement("button");
         b.className = "opt";
-        if(q && q.__options && q.__options.length>6){ b.classList.add("compact"); }
         if(q && q.__options && q.__options.length>6){ b.classList.add("compact"); }
         b.innerHTML = renderOptText(idx, norm.options[idx]);
         addTap(b, function(){
@@ -7613,7 +7667,7 @@ function noteWrong(q, picked){
 }
 
 
-function revealAnswer(picked, timeup, forcedOk){
+function revealAnswer(picked, timeup, forcedOk, noPenalty){
   var q = state.qlist[state.idx];
   var isMulti = (q.type==="多選");
   var ans = q.__answer;
@@ -7649,7 +7703,10 @@ function revealAnswer(picked, timeup, forcedOk){
   feedback.classList.remove("good");
   feedback.classList.remove("bad");
 
-  if(timeup){
+  if(noPenalty){
+    var exp0 = getExplainText(q, false);
+    feedback.textContent = "答案：" + renderAnsText(q) + (exp0 ? "\n解析：" + exp0 : "");
+  }else if(timeup){
     feedback.classList.add("bad");
     var exp = getExplainText(q, true);
     feedback.textContent = "時間到！正確答案：" + renderAnsText(q) + (exp ? "\n解析：" + exp : "");
@@ -7678,7 +7735,7 @@ function revealAnswer(picked, timeup, forcedOk){
   }
 
   btnReveal.disabled = true;
-  updateKPI();
+  if(!noPenalty) updateKPI();
 }
 
 
@@ -7695,9 +7752,11 @@ function next(){
 function finish(){
   stopTimer();
   state.running = false;
+  setPlayMode(false);
   btnEnd.disabled = true;
   btnNext.disabled = true;
   btnReveal.disabled = true;
+  if(btnFinishEarly) btnFinishEarly.disabled = true;
   pBar.style.width = "100%";
 
   var total = state.qlist.length;
@@ -7778,6 +7837,7 @@ function startFromList(list){
 
   summaryPane.classList.add("hidden");
   quizPane.classList.remove("hidden");
+  setPlayMode(true);
   renderQuestion();
 }
 
@@ -7829,6 +7889,7 @@ addTap(btnStart, function(){
   summaryPane.classList.add("hidden");
   quizPane.classList.remove("hidden");
 
+  setPlayMode(true);
   renderQuestion();
 });
 
@@ -7847,13 +7908,20 @@ addTap(btnReset, function(){
 
 addTap(btnEnd, function(){ finish(); });
 addTap(btnNext, function(){ next(); });
+if(btnFinishEarly){
+  addTap(btnFinishEarly, function(){
+    if(!state.running) return;
+    finish();
+  });
+}
 
 addTap(btnReveal, function(){
   if(!state.running) return;
   if(state.answered) return;
+  if(state.mode === "exam") return;
   state.answered = true;
   stopTimer();
-  revealAnswer(null, false, false);
+  revealAnswer(null, false, null, true);
   btnNext.disabled = false;
 });
 
@@ -7872,6 +7940,13 @@ if(btnBonusToggle && !btnBonusToggle._boundBonus){
     if(btnBonusToggle.disabled) return;
     var isOpen = bonusFrameWrap && !bonusFrameWrap.classList.contains("hidden");
     setBonusOpen(!isOpen);
+  });
+}
+if(bonusFrame && !bonusFrame._boundLoad){
+  bonusFrame._boundLoad = true;
+  bonusFrame.addEventListener("load", function(){
+    bonusFrame._loaded = true;
+    setBonusLoading(false);
   });
 }
 
