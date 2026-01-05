@@ -396,6 +396,25 @@
     .devModalBody pre{ background:rgba(255,255,255,.06); padding:12px; border-radius:12px; overflow:auto; border:1px solid rgba(255,255,255,.10); }
     .devBtn{ width:100%; }
 
+    /* Review Notes modal */
+    .reviewModalBackdrop{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:9999; padding:16px; }
+    .reviewModal{ width:min(900px, 100%); max-height:88vh; overflow:auto; background:#12141a; border:1px solid rgba(255,255,255,.14); border-radius:14px; box-shadow:0 10px 40px rgba(0,0,0,.45); }
+    .reviewModalHeader{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.12); }
+    .reviewModalHeader h3{ margin:0; font-size:18px; }
+    .reviewModalBody{ padding:14px 16px 18px; }
+    .reviewTextarea{
+      width:100%;
+      min-height:360px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding:10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:13px;
+      line-height:1.6;
+      white-space: pre;
+    }
 </style>
 </head>
 <body>
@@ -404,6 +423,7 @@
     <h1>考題闖關遊戲</h1>
     <span class="badge">離線可用｜單檔 HTML</span>
     <span class="badge">題庫：單元三 50 題＋單元四 50 題</span>
+    <span class="badge" id="versionBadge">版本：--</span>
   </div>
   <p class="sub"><span class="chip">版本說明</span> 本遊戲「答案與解說」以題庫提供內容為準；如日後你提供正式答案卷，也可再進一步校正。 </p>
   <p class="sub"><span class="chip">iOS 提示</span> 若你是從「檔案」App 預覽開啟，可能不會執行程式；請用分享 →「在 Safari 開啟」。</p>
@@ -524,6 +544,9 @@
           <button class="primary" id="btnStart">開始</button>
           <button class="ghost" id="btnReset">重設</button>
           <button class="danger" id="btnEnd" disabled>結束並看成績</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="ghost devBtn" id="btnReviewNotes" type="button">輸出考前重點</button>
         </div>
         <div class="row" style="margin-top:10px;">
           <button class="ghost devBtn" id="btnDevGuide" type="button">開發者說明</button>
@@ -6353,6 +6376,25 @@ function formatTime(sec){
   return pad(m)+":"+pad(s);
 }
 
+function updateVersionBadge(){
+  var el = $("#versionBadge");
+  if(!el) return;
+  var raw = document.lastModified || "";
+  var d = new Date(raw);
+  if(!isNaN(d.getTime())){
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1); if(m.length<2) m = "0" + m;
+    var day = String(d.getDate()); if(day.length<2) day = "0" + day;
+    var hh = String(d.getHours()); if(hh.length<2) hh = "0" + hh;
+    var mm = String(d.getMinutes()); if(mm.length<2) mm = "0" + mm;
+    el.textContent = "版本：" + y + "-" + m + "-" + day + " " + hh + ":" + mm;
+  }else if(raw){
+    el.textContent = "版本：" + raw;
+  }else{
+    el.textContent = "版本：--";
+  }
+}
+
 function escapeHtml(s){
   s = String(s);
   s = s.replace(/&/g,"&amp;")
@@ -6597,6 +6639,12 @@ var bonusNote = $("#bonusNote");
 var bonusFrameWrap = $("#bonusFrameWrap");
 var bonusFrame = $("#bonusFrame");
 var btnBonusToggle = $("#btnBonusToggle");
+var btnReviewNotes = $("#btnReviewNotes");
+var reviewBackdrop = $("#reviewBackdrop");
+var reviewText = $("#reviewText");
+var btnReviewClose = $("#btnReviewClose");
+var btnReviewCopy = $("#btnReviewCopy");
+var btnReviewDownload = $("#btnReviewDownload");
 
 // Combat UI
 var stageChip = $("#stageChip");
@@ -6874,6 +6922,104 @@ function updateBonusUI(){
   }
   if(btnBonusToggle) btnBonusToggle.disabled = !unlocked;
   if(!unlocked) setBonusOpen(false);
+}
+
+function ensureReviewEls(){
+  if(reviewBackdrop) return;
+  reviewBackdrop = $("#reviewBackdrop");
+  reviewText = $("#reviewText");
+  btnReviewClose = $("#btnReviewClose");
+  btnReviewCopy = $("#btnReviewCopy");
+  btnReviewDownload = $("#btnReviewDownload");
+}
+
+function buildReviewText(){
+  var subjects = {};
+  for(var i=0;i<ALL_BANK.length;i++){
+    var q = ALL_BANK[i];
+    var subj = normSubj(q.subject || "社會");
+    if(!subjects[subj]) subjects[subj] = [];
+    subjects[subj].push(q);
+  }
+
+  var order = ["社會", "國語", "自然", "英文"];
+  var subjList = [];
+  for(var j=0;j<order.length;j++){
+    if(subjects[order[j]]) subjList.push(order[j]);
+  }
+  for(var k in subjects){
+    if(subjects.hasOwnProperty(k) && order.indexOf(k)===-1) subjList.push(k);
+  }
+
+  var lines = [];
+  lines.push("# 考前重點整理");
+  lines.push("來源：題庫自動整理");
+  lines.push("");
+
+  for(var s=0;s<subjList.length;s++){
+    var subjName = subjList[s];
+    var list = subjects[subjName] || [];
+    lines.push("## " + subjName);
+    for(var x=0;x<list.length;x++){
+      var qx = list[x];
+      var ansText = renderAnswerTextFromQuestion(qx);
+      var key = "";
+      if(qx.explain){
+        key = cleanExplainText(qx.explain);
+      }else if(qx.hint){
+        key = "提示：" + String(qx.hint);
+      }
+      if(key){
+        lines.push((x+1) + ". " + key + "（答案：" + ansText + "）");
+      }else{
+        lines.push((x+1) + ". " + String(qx.q || "") + "（答案：" + ansText + "）");
+      }
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function openReviewModal(){
+  ensureReviewEls();
+  if(!reviewBackdrop || !reviewText) return;
+  reviewText.value = buildReviewText();
+  reviewBackdrop.style.display = "flex";
+}
+function closeReviewModal(){
+  ensureReviewEls();
+  if(!reviewBackdrop) return;
+  reviewBackdrop.style.display = "none";
+}
+function copyReviewText(){
+  ensureReviewEls();
+  if(!reviewText) return;
+  var text = reviewText.value || "";
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      if(btnReviewCopy) btnReviewCopy.textContent = "已複製";
+      setTimeout(function(){ if(btnReviewCopy) btnReviewCopy.textContent = "複製"; }, 1200);
+    });
+    return;
+  }
+  reviewText.focus();
+  reviewText.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  if(btnReviewCopy) btnReviewCopy.textContent = "已複製";
+  setTimeout(function(){ if(btnReviewCopy) btnReviewCopy.textContent = "複製"; }, 1200);
+}
+function downloadReviewText(){
+  ensureReviewEls();
+  if(!reviewText) return;
+  var blob = new Blob([reviewText.value || ""], {type:"text/markdown;charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "review-notes.md";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 300);
 }
 
 function resetUI(){
@@ -7258,6 +7404,20 @@ function idxToLabel(i){
 
 function renderOptText(i, raw){
   return idxToLabel(i) + " " + stripOptPrefix(raw);
+}
+
+function renderAnswerTextFromQuestion(q){
+  if(!q || !q.options) return "";
+  var ans = q.answer;
+  if(Object.prototype.toString.call(ans)==="[object Array]"){
+    var parts = [];
+    for(var i=0;i<ans.length;i++){
+      var idx = ans[i];
+      parts.push(renderOptText(idx, q.options[idx]));
+    }
+    return parts.join("；");
+  }
+  return renderOptText(ans, q.options[ans]);
 }
 
 function cleanExplainText(exp){
@@ -7715,6 +7875,11 @@ if(btnBonusToggle && !btnBonusToggle._boundBonus){
   });
 }
 
+if(btnReviewNotes && !btnReviewNotes._boundReview){
+  btnReviewNotes._boundReview = true;
+  addTap(btnReviewNotes, function(){ openReviewModal(); });
+}
+
 
 if(btnNextSet){
   addTap(btnNextSet, function(){
@@ -7744,6 +7909,7 @@ resetUI();
 initFontScale();
 initWrongBook();
 initSubjectUnitSync();
+updateVersionBadge();
 
 
 
@@ -7752,6 +7918,10 @@ document.addEventListener("DOMContentLoaded", function(){
   var bd = document.getElementById("devModalBackdrop");
   var btn = document.getElementById("btnDevGuide");
   var closeBtn = document.getElementById("btnDevClose");
+  var reviewBd = document.getElementById("reviewBackdrop");
+  var reviewClose = document.getElementById("btnReviewClose");
+  var reviewCopy = document.getElementById("btnReviewCopy");
+  var reviewDownload = document.getElementById("btnReviewDownload");
 
   function openModal(){
     if(!bd) return;
@@ -7771,6 +7941,29 @@ document.addEventListener("DOMContentLoaded", function(){
 
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape") closeModal();
+  });
+
+  ensureReviewEls();
+  if(reviewClose && !reviewClose._boundReviewClose){
+    reviewClose._boundReviewClose = true;
+    addTap(reviewClose, function(){ closeReviewModal(); });
+  }
+  if(reviewCopy && !reviewCopy._boundReviewCopy){
+    reviewCopy._boundReviewCopy = true;
+    addTap(reviewCopy, function(){ copyReviewText(); });
+  }
+  if(reviewDownload && !reviewDownload._boundReviewDownload){
+    reviewDownload._boundReviewDownload = true;
+    addTap(reviewDownload, function(){ downloadReviewText(); });
+  }
+  if(reviewBd && !reviewBd._boundReviewBackdrop){
+    reviewBd._boundReviewBackdrop = true;
+    reviewBd.addEventListener("click", function(e){
+      if(e.target === reviewBd) closeReviewModal();
+    });
+  }
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") closeReviewModal();
   });
 });
 
@@ -7862,6 +8055,24 @@ document.addEventListener("DOMContentLoaded", function(){
         </ol>
 
         <p style="opacity:.85;margin-top:14px;">提示：若你要把題庫做成「可熱插拔」的 JSON 檔或多檔載入，也可以延伸成 <code>fetch()</code> 載入。但為了 iOS 離線相容，目前採用單檔最穩定。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 考前重點整理（Review Notes）彈窗 -->
+  <div id="reviewBackdrop" class="reviewModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <div class="reviewModal">
+      <div class="reviewModalHeader">
+        <h3 id="reviewTitle">考前重點整理（依題庫自動生成）</h3>
+        <button id="btnReviewClose" class="btn" type="button">關閉</button>
+      </div>
+      <div class="reviewModalBody">
+        <p>點下方按鈕可複製或下載，每個科目會分段輸出。</p>
+        <div class="row" style="margin:10px 0;">
+          <button id="btnReviewCopy" class="ghost" type="button">複製</button>
+          <button id="btnReviewDownload" class="ghost" type="button">下載 .md</button>
+        </div>
+        <textarea id="reviewText" class="reviewTextarea" spellcheck="false"></textarea>
       </div>
     </div>
   </div>
