@@ -299,46 +299,18 @@
       border-radius: 12px;
       pointer-events:none;
     }
-    .snakeWrap{
-      margin-top: 10px;
-      padding: 12px;
-      border:1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(0,0,0,.18);
-      display:grid;
-      gap:10px;
-    }
-    .snakeMeta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .snakeCanvas{
+    .bonusFrameWrap:fullscreen,
+    .bonusFrameWrap:-webkit-full-screen{
       width:100%;
-      max-width:420px;
-      aspect-ratio: 1 / 1;
-      border:1px solid var(--border);
-      border-radius:12px;
+      height:100%;
+      padding:16px;
       background:#0b1220;
+      overflow:auto;
     }
-    .snakeSelect{
-      padding: 4px 8px;
-      border-radius: 8px;
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.35);
-      color: var(--text);
+    .bonusFrameWrap:fullscreen .bonusFrame,
+    .bonusFrameWrap:-webkit-full-screen .bonusFrame{
+      height: calc(100% - 16px);
     }
-    .snakePad{
-      display:grid;
-      grid-template-columns: repeat(3, 52px);
-      grid-template-rows: repeat(3, 42px);
-      gap:6px;
-      justify-content:center;
-      align-items:center;
-    }
-    .snakePad button{
-      border-radius:10px;
-      padding:6px;
-      background: rgba(255,255,255,.06);
-      border:1px solid var(--border);
-    }
-    .snakePad .spacer{ visibility:hidden; }
     @media (max-width: 520px){
       .bonusFrame{ height: 520px; }
     }
@@ -527,12 +499,7 @@
         <label>出題範圍
           <select id="unitSel">
             <optgroup label="社會題組">
-              <option value="u3">單元三</option>
-              <option value="u4">單元四</option>
-              <option value="gen">自動生成題庫（100題）</option>
-              <option value="paper">試卷</option>
-              <option value="paper2">試卷2</option>
-              <option value="paper3">試卷3</option>
+              <option value="soc_all">社會題組（全部）</option>
             </optgroup>
             <optgroup label="自然題組">
               <option value="nat1">自然題組1（自然.pdf）</option>
@@ -727,52 +694,10 @@
         </div>
         <div class="small" id="bonusNote" style="margin-top:6px;">分數達 85 以上即可解鎖。遊戲來源：iamkun/tower_game（MIT）。</div>
           <div id="bonusFrameWrap" class="bonusFrameWrap hidden">
-            <iframe id="bonusFrame" class="bonusFrame" title="獎勵關卡：疊塔遊戲" loading="lazy" src="about:blank" data-src="bonus/tower/index.html"></iframe>
+          <iframe id="bonusFrame" class="bonusFrame" title="獎勵關卡：疊塔遊戲" loading="lazy" src="about:blank" data-src="bonus/tower/index.html" allow="fullscreen" allowfullscreen></iframe>
             <div id="bonusLoading" class="bonusLoading">載入中...</div>
           </div>
         </div>
-
-      <div id="bonusSnakeWrap" class="bonus hidden">
-        <div class="row" style="justify-content:space-between; align-items:center;">
-          <div>
-            <div class="small">獎勵關卡</div>
-            <div style="font-weight:700">貪吃蛇小遊戲</div>
-          </div>
-          <div class="row">
-            <button class="ghost" id="btnSnakeToggle" type="button">展開遊戲</button>
-            <button class="ghost" id="btnSnakeRestart" type="button">重新開始</button>
-          </div>
-        </div>
-        <div class="small" id="snakeNote" style="margin-top:6px;">分數達 85 以上即可解鎖。</div>
-        <div id="snakeGameWrap" class="snakeWrap hidden">
-          <div class="snakeMeta">
-            <span class="chip" id="snakeScore">分數：0</span>
-            <span class="chip" id="snakeBest">最高：0</span>
-            <label class="chip" style="display:flex; align-items:center; gap:6px;">
-              <span>速度</span>
-              <select id="snakeSpeedSel" class="snakeSelect">
-                <option value="slow">慢</option>
-                <option value="normal" selected>中</option>
-                <option value="fast">快</option>
-              </select>
-            </label>
-          </div>
-          <canvas id="snakeCanvas" class="snakeCanvas" width="360" height="360"></canvas>
-          <div class="row">
-            <button class="ghost" id="btnSnakeStart" type="button">開始</button>
-            <span class="small" id="snakeStatus">準備開始</span>
-          </div>
-          <div class="snakePad" aria-label="貪吃蛇方向鍵">
-            <span class="spacer"></span>
-            <button class="ghost" type="button" data-snake-dir="up">↑</button>
-            <span class="spacer"></span>
-            <button class="ghost" type="button" data-snake-dir="left">←</button>
-            <button class="ghost" type="button" data-snake-dir="down">↓</button>
-            <button class="ghost" type="button" data-snake-dir="right">→</button>
-          </div>
-          <div class="small">可用鍵盤方向鍵或按鈕操作。</div>
-        </div>
-      </div>
 
       <div id="bonus2048Wrap" class="bonus hidden">
         <div class="row" style="justify-content:space-between; align-items:center;">
@@ -787,7 +712,7 @@
         </div>
         <div class="small" id="note2048" style="margin-top:6px;">分數達 85 以上即可解鎖。</div>
         <div id="bonus2048FrameWrap" class="bonusFrameWrap hidden">
-          <iframe id="bonus2048Frame" class="bonusFrame" title="獎勵關卡：2048" loading="lazy" src="about:blank" data-src="bonus/2048/index.html"></iframe>
+          <iframe id="bonus2048Frame" class="bonusFrame" title="獎勵關卡：2048" loading="lazy" src="about:blank" data-src="bonus/2048/index.html" allow="fullscreen" allowfullscreen></iframe>
           <div id="bonus2048Loading" class="bonusLoading">載入中...</div>
         </div>
       </div>
@@ -805,7 +730,7 @@
         </div>
         <div class="small" id="noteMemory" style="margin-top:6px;">分數達 85 以上即可解鎖。</div>
         <div id="bonusMemoryFrameWrap" class="bonusFrameWrap hidden">
-          <iframe id="bonusMemoryFrame" class="bonusFrame" title="獎勵關卡：記憶翻牌" loading="lazy" src="about:blank" data-src="bonus/memory/index.html"></iframe>
+          <iframe id="bonusMemoryFrame" class="bonusFrame" title="獎勵關卡：記憶翻牌" loading="lazy" src="about:blank" data-src="bonus/memory/index.html" allow="fullscreen" allowfullscreen></iframe>
           <div id="bonusMemoryLoading" class="bonusLoading">載入中...</div>
         </div>
       </div>
@@ -4969,7 +4894,8 @@ var QUESTION_BANK = [
     ],
     "answer": 1
   }
-];
+]
+;
 
 var GEN_BANK = [
   {
@@ -6485,7 +6411,8 @@ var GEN_BANK = [
     "explain": "正確答案：A 抽取地下水增加；B 灌溉大量依賴地下水；D 增加抽水井數量\n理由：抽取越多、井越多越加劇；節水可減緩。",
     "subject": "社會"
   }
-];
+]
+;
 var ALL_BANK = QUESTION_BANK.concat(GEN_BANK);
 var BANK_INDEX = {};
 
@@ -6589,6 +6516,25 @@ function setPlayMode(active){
   }
 }
 
+function getFullscreenElement(){
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.mozFullScreenElement;
+}
+function requestFullscreenFor(el){
+  if(!el) return;
+  if(getFullscreenElement() === el) return;
+  var req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen || el.mozRequestFullScreen;
+  if(req){
+    try{ req.call(el); }catch(e){}
+  }
+}
+function exitFullscreenIf(el){
+  if(getFullscreenElement() !== el) return;
+  var exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || document.mozCancelFullScreen;
+  if(exit){
+    try{ exit.call(document); }catch(e){}
+  }
+}
+
 function promptBonusPassword(){
   var input = window.prompt("輸入密碼以解鎖獎勵並直接結束本局：");
   if(input===null || typeof input==="undefined") return;
@@ -6604,223 +6550,6 @@ function promptBonusPassword(){
   }
 }
 
-var SNAKE_BEST_KEY = "snakeBestScoreV1";
-var snakeCtx = null;
-var snakeState = {
-  inited:false,
-  running:false,
-  timer:null,
-  dir:"right",
-  nextDir:"right",
-  body:[],
-  food:{x:0,y:0},
-  score:0,
-  best:0,
-  grid:20,
-  cell:18,
-  speedMs:120
-};
-
-function setSnakeStatus(text){
-  if(snakeStatusEl) snakeStatusEl.textContent = text;
-}
-function updateSnakeScore(){
-  if(snakeScoreEl) snakeScoreEl.textContent = "分數：" + snakeState.score;
-  if(snakeBestEl) snakeBestEl.textContent = "最高：" + snakeState.best;
-}
-function loadSnakeBest(){
-  var v = 0;
-  try{
-    if(window.localStorage){
-      v = parseInt(localStorage.getItem(SNAKE_BEST_KEY) || "0", 10);
-    }
-  }catch(e){ v = 0; }
-  if(isNaN(v)) v = 0;
-  snakeState.best = v;
-}
-function saveSnakeBest(){
-  try{
-    if(window.localStorage){
-      localStorage.setItem(SNAKE_BEST_KEY, String(snakeState.best));
-    }
-  }catch(e){}
-}
-function resizeSnakeCanvas(){
-  if(!snakeCanvas) return;
-  var wrap = snakeCanvas.parentElement;
-  var max = 420;
-  var w = wrap ? wrap.clientWidth : 360;
-  var size = Math.min(max, w);
-  size = Math.floor(size / snakeState.grid) * snakeState.grid;
-  if(size < 240) size = snakeState.grid * 12;
-  snakeCanvas.width = size;
-  snakeCanvas.height = size;
-  snakeCanvas.style.width = size + "px";
-  snakeCanvas.style.height = size + "px";
-  snakeState.cell = size / snakeState.grid;
-}
-function drawSnake(){
-  if(!snakeCtx || !snakeCanvas) return;
-  snakeCtx.clearRect(0,0,snakeCanvas.width, snakeCanvas.height);
-  // background
-  snakeCtx.fillStyle = "#0b1220";
-  snakeCtx.fillRect(0,0,snakeCanvas.width, snakeCanvas.height);
-  // food
-  snakeCtx.fillStyle = "#fb7185";
-  snakeCtx.fillRect(
-    snakeState.food.x * snakeState.cell,
-    snakeState.food.y * snakeState.cell,
-    snakeState.cell,
-    snakeState.cell
-  );
-  // snake
-  for(var i=0;i<snakeState.body.length;i++){
-    var b = snakeState.body[i];
-    snakeCtx.fillStyle = (i===0) ? "#2dd4bf" : "#60a5fa";
-    snakeCtx.fillRect(
-      b.x * snakeState.cell,
-      b.y * snakeState.cell,
-      snakeState.cell,
-      snakeState.cell
-    );
-  }
-}
-function snakeSetDir(dir){
-  var opposite = {
-    up:"down", down:"up", left:"right", right:"left"
-  };
-  if(dir === opposite[snakeState.dir]) return;
-  snakeState.nextDir = dir;
-}
-function snakeSpawnFood(){
-  var tries = 0;
-  while(tries < 200){
-    var fx = Math.floor(Math.random() * snakeState.grid);
-    var fy = Math.floor(Math.random() * snakeState.grid);
-    var collision = false;
-    for(var i=0;i<snakeState.body.length;i++){
-      if(snakeState.body[i].x === fx && snakeState.body[i].y === fy){
-        collision = true;
-        break;
-      }
-    }
-    if(!collision){
-      snakeState.food = {x:fx, y:fy};
-      return;
-    }
-    tries++;
-  }
-  snakeState.food = {x:0,y:0};
-}
-function snakeReset(){
-  snakePause();
-  snakeState.dir = "right";
-  snakeState.nextDir = "right";
-  snakeState.score = 0;
-  var mid = Math.floor(snakeState.grid/2);
-  snakeState.body = [
-    {x:mid, y:mid},
-    {x:mid-1, y:mid},
-    {x:mid-2, y:mid}
-  ];
-  snakeSpawnFood();
-  updateSnakeScore();
-  setSnakeStatus("準備開始");
-  snakeState.running = false;
-  if(btnSnakeStart) btnSnakeStart.textContent = "開始";
-  drawSnake();
-}
-function snakeStep(){
-  snakeState.dir = snakeState.nextDir;
-  var head = snakeState.body[0];
-  var nx = head.x;
-  var ny = head.y;
-  if(snakeState.dir==="up") ny--;
-  else if(snakeState.dir==="down") ny++;
-  else if(snakeState.dir==="left") nx--;
-  else if(snakeState.dir==="right") nx++;
-
-  // wall hit
-  if(nx < 0 || ny < 0 || nx >= snakeState.grid || ny >= snakeState.grid){
-    snakeGameOver();
-    return;
-  }
-  // self hit
-  for(var i=0;i<snakeState.body.length;i++){
-    if(snakeState.body[i].x === nx && snakeState.body[i].y === ny){
-      snakeGameOver();
-      return;
-    }
-  }
-
-  snakeState.body.unshift({x:nx,y:ny});
-  if(nx === snakeState.food.x && ny === snakeState.food.y){
-    snakeState.score++;
-    if(snakeState.score > snakeState.best){
-      snakeState.best = snakeState.score;
-      saveSnakeBest();
-    }
-    updateSnakeScore();
-    snakeSpawnFood();
-  }else{
-    snakeState.body.pop();
-  }
-  drawSnake();
-}
-function snakeStart(){
-  if(snakeState.running) return;
-  snakeState.running = true;
-  setSnakeStatus("遊戲中");
-  if(btnSnakeStart) btnSnakeStart.textContent = "暫停";
-  snakeState.timer = setInterval(snakeStep, snakeState.speedMs);
-}
-function snakePause(){
-  if(!snakeState.running) return;
-  snakeState.running = false;
-  if(snakeState.timer){
-    clearInterval(snakeState.timer);
-    snakeState.timer = null;
-  }
-  setSnakeStatus("已暫停");
-  if(btnSnakeStart) btnSnakeStart.textContent = "開始";
-}
-function snakeGameOver(){
-  snakePause();
-  setSnakeStatus("遊戲結束");
-}
-function snakeSetSpeed(speed){
-  if(speed === "slow") snakeState.speedMs = 160;
-  else if(speed === "fast") snakeState.speedMs = 90;
-  else snakeState.speedMs = 120;
-  if(snakeState.running){
-    snakePause();
-    snakeStart();
-  }
-}
-function ensureSnakeInit(){
-  if(snakeState.inited) return;
-  if(!snakeCanvas) return;
-  snakeCtx = snakeCanvas.getContext("2d");
-  resizeSnakeCanvas();
-  loadSnakeBest();
-  if(snakeSpeedSel) snakeSetSpeed(snakeSpeedSel.value || "normal");
-  updateSnakeScore();
-  snakeReset();
-  snakeState.inited = true;
-}
-function setSnakeOpen(open){
-  if(!snakeGameWrap || !btnSnakeToggle) return;
-  if(open){
-    snakeGameWrap.classList.remove("hidden");
-    btnSnakeToggle.textContent = "收合遊戲";
-    ensureSnakeInit();
-    drawSnake();
-  }else{
-    snakePause();
-    snakeGameWrap.classList.add("hidden");
-    btnSnakeToggle.textContent = "展開遊戲";
-  }
-}
 
 function escapeHtml(s){
   s = String(s);
@@ -7062,17 +6791,6 @@ var bonusFrameWrap = $("#bonusFrameWrap");
 var bonusFrame = $("#bonusFrame");
 var bonusLoading = $("#bonusLoading");
 var btnBonusToggle = $("#btnBonusToggle");
-var bonusSnakeWrap = $("#bonusSnakeWrap");
-var snakeNote = $("#snakeNote");
-var snakeGameWrap = $("#snakeGameWrap");
-var btnSnakeToggle = $("#btnSnakeToggle");
-var btnSnakeStart = $("#btnSnakeStart");
-var btnSnakeRestart = $("#btnSnakeRestart");
-var snakeCanvas = $("#snakeCanvas");
-var snakeScoreEl = $("#snakeScore");
-var snakeBestEl = $("#snakeBest");
-var snakeStatusEl = $("#snakeStatus");
-var snakeSpeedSel = $("#snakeSpeedSel");
 var bonus2048Wrap = $("#bonus2048Wrap");
 var note2048 = $("#note2048");
 var bonus2048FrameWrap = $("#bonus2048FrameWrap");
@@ -7274,7 +6992,7 @@ function initFontScale(){
 function inferSubjectFromUnitVal(v){
   if(!v) return null;
   if(v==="nat1" || v==="wrong_nat" || v==="wrongset_nat") return "自然";
-  if(v==="u3" || v==="u4" || v==="gen" || v==="paper" || v==="paper2" || v==="paper3" || v==="wrong_soc" || v==="wrongset_soc") return "社會";
+  if(v==="soc_all" || v==="wrong_soc" || v==="wrongset_soc") return "社會";
   return null;
 }
 
@@ -7297,7 +7015,7 @@ function mapWrongUnitForSubject(currentUnit, subj){
 function defaultUnitForSubject(subj){
   subj = normSubj(subj||"社會");
   if(subj==="自然") return "nat1";
-  return "u3";
+  return "soc_all";
 }
 
 function syncSubjectFromUnit(){
@@ -7570,9 +7288,11 @@ function setBonusOpen(open){
     }else{
       setBonusLoading(true);
     }
+    requestFullscreenFor(bonusFrameWrap);
   }else{
     bonusFrameWrap.classList.add("hidden");
     btnBonusToggle.textContent = "展開遊戲";
+    exitFullscreenIf(bonusFrameWrap);
   }
 }
 function ensure2048FrameLoaded(){
@@ -7593,9 +7313,11 @@ function set2048Open(open){
     }else{
       setFrameLoading(bonus2048Loading, true);
     }
+    requestFullscreenFor(bonus2048FrameWrap);
   }else{
     bonus2048FrameWrap.classList.add("hidden");
     btn2048Toggle.textContent = "展開遊戲";
+    exitFullscreenIf(bonus2048FrameWrap);
   }
 }
 function ensureMemoryFrameLoaded(){
@@ -7616,9 +7338,11 @@ function setMemoryOpen(open){
     }else{
       setFrameLoading(bonusMemoryLoading, true);
     }
+    requestFullscreenFor(bonusMemoryFrameWrap);
   }else{
     bonusMemoryFrameWrap.classList.add("hidden");
     btnMemoryToggle.textContent = "展開遊戲";
+    exitFullscreenIf(bonusMemoryFrameWrap);
   }
 }
 function updateBonusUI(){
@@ -7637,23 +7361,6 @@ function updateBonusUI(){
   }
   if(btnBonusToggle) btnBonusToggle.disabled = !unlocked;
   if(!unlocked) setBonusOpen(false);
-
-  if(bonusSnakeWrap){
-    bonusSnakeWrap.classList.remove("hidden");
-    if(snakeNote){
-      if(unlocked){
-        snakeNote.textContent = passUnlock ? "已解鎖：密碼通過。" : "已解鎖：分數達 85 以上。";
-      }else{
-        snakeNote.textContent = "分數達 85 以上即可解鎖。";
-      }
-    }
-    if(btnSnakeToggle) btnSnakeToggle.disabled = !unlocked;
-    if(btnSnakeStart) btnSnakeStart.disabled = !unlocked;
-    if(btnSnakeRestart) btnSnakeRestart.disabled = !unlocked;
-    if(!unlocked){
-      setSnakeOpen(false);
-    }
-  }
 
   if(bonus2048Wrap){
     bonus2048Wrap.classList.remove("hidden");
@@ -7720,7 +7427,7 @@ function buildReviewText(){
 
   for(var s=0;s<subjList.length;s++){
     var subjName = subjList[s];
-    var list = subjects[subjName] || [];
+    var list = dedupeQuestions(subjects[subjName] || []);
     lines.push("## " + subjName);
     for(var x=0;x<list.length;x++){
       var qx = list[x];
@@ -7811,8 +7518,6 @@ function resetUI(){
   if(hpEnemyBar){ hpEnemyBar.style.width = "100%"; }
   if(bonusWrap){ bonusWrap.classList.add("hidden"); }
   setBonusOpen(false);
-  if(bonusSnakeWrap){ bonusSnakeWrap.classList.add("hidden"); }
-  setSnakeOpen(false);
   if(bonus2048Wrap){ bonus2048Wrap.classList.add("hidden"); }
   set2048Open(false);
   if(bonusMemoryWrap){ bonusMemoryWrap.classList.add("hidden"); }
@@ -7865,6 +7570,21 @@ function onTimeUp(){
  * - 若選錯題本：從 wrongBook 的 id 清單反查題目物件
  * -------------------------------------------------------------------------- */
 
+function dedupeQuestions(list){
+  var seen = {};
+  var out = [];
+  for(var i=0;i<list.length;i++){
+    var q = list[i];
+    var key = String(q.q||"").replace(/\s+/g, " ").trim();
+    if(!key) key = "NOQ-" + i;
+    if(!seen[key]){
+      seen[key] = true;
+      out.push(q);
+    }
+  }
+  return out;
+}
+
 function filterBank(){
   var subj = (typeof subjectSel!=="undefined" && subjectSel) ? subjectSel.value : "社會";
   var v = unitSel ? unitSel.value : "both";
@@ -7874,12 +7594,7 @@ function filterBank(){
     return list.filter(function(q){ return (q.subject||"社會") === subj; });
   }
 
-  if(v==="u3") return bySubj(ALL_BANK.filter(function(q){ return q.topic==="單元三"; }));
-  if(v==="u4") return bySubj(ALL_BANK.filter(function(q){ return q.topic==="單元四"; }));
-  if(v==="paper") return bySubj(ALL_BANK.filter(function(q){ return q.topic==="試卷"; }));
-  if(v==="paper2") return bySubj(ALL_BANK.filter(function(q){ return q.topic==="試卷2"; }));
-  if(v==="paper3") return bySubj(ALL_BANK.filter(function(q){ return q.topic==="試卷3"; }));
-  if(v==="gen") return bySubj(GEN_BANK.slice());
+  if(v==="soc_all") return dedupeQuestions(bySubj(ALL_BANK.slice()));
 
   if(v==="wrong_soc" || v==="wrongset_soc" || v==="wrong_nat" || v==="wrongset_nat" || v==="wrong" || v==="wrongset"){
     var wrongSubj = null;
@@ -8566,7 +8281,6 @@ function startFromList(list){
 addTap(btnStart, function(){
   if(fontSel){ applyFontScale(fontSel.value || "L"); }
   state.mode = modeSel.value;
-  setSnakeOpen(false);
   set2048Open(false);
   setMemoryOpen(false);
   var sec = parseInt(secIn.value||"0",10);
@@ -8662,7 +8376,6 @@ addTap(btnRetry, function(){ btnStart.click(); });
 addTap(btnBack, function(){
   summaryPane.classList.add("hidden");
   quizPane.classList.remove("hidden");
-  setSnakeOpen(false);
   set2048Open(false);
   setMemoryOpen(false);
 });
@@ -8743,62 +8456,6 @@ if(bonusMemoryFrame && !bonusMemoryFrame._boundLoad){
 if(btnReviewNotes && !btnReviewNotes._boundReview){
   btnReviewNotes._boundReview = true;
   addTap(btnReviewNotes, function(){ openReviewModal(); });
-}
-
-if(btnSnakeToggle && !btnSnakeToggle._boundSnakeToggle){
-  btnSnakeToggle._boundSnakeToggle = true;
-  addTap(btnSnakeToggle, function(){
-    if(btnSnakeToggle.disabled) return;
-    var isOpen = snakeGameWrap && !snakeGameWrap.classList.contains("hidden");
-    setSnakeOpen(!isOpen);
-  });
-}
-if(btnSnakeStart && !btnSnakeStart._boundSnakeStart){
-  btnSnakeStart._boundSnakeStart = true;
-  addTap(btnSnakeStart, function(){
-    if(btnSnakeStart.disabled) return;
-    if(!snakeState.inited) ensureSnakeInit();
-    if(snakeState.running) snakePause();
-    else snakeStart();
-  });
-}
-if(btnSnakeRestart && !btnSnakeRestart._boundSnakeRestart){
-  btnSnakeRestart._boundSnakeRestart = true;
-  addTap(btnSnakeRestart, function(){
-    if(btnSnakeRestart.disabled) return;
-    ensureSnakeInit();
-    snakeReset();
-    snakeStart();
-  });
-}
-if(snakeSpeedSel && !snakeSpeedSel._boundSnakeSpeed){
-  snakeSpeedSel._boundSnakeSpeed = true;
-  snakeSpeedSel.addEventListener("change", function(){
-    snakeSetSpeed(snakeSpeedSel.value || "normal");
-  });
-}
-if(!document._boundSnakeKeys){
-  document._boundSnakeKeys = true;
-  document.addEventListener("keydown", function(e){
-    if(!snakeGameWrap || snakeGameWrap.classList.contains("hidden")) return;
-    var k = e.key;
-    if(k==="ArrowUp"){ snakeSetDir("up"); e.preventDefault(); }
-    else if(k==="ArrowDown"){ snakeSetDir("down"); e.preventDefault(); }
-    else if(k==="ArrowLeft"){ snakeSetDir("left"); e.preventDefault(); }
-    else if(k==="ArrowRight"){ snakeSetDir("right"); e.preventDefault(); }
-  });
-}
-if(!document._boundSnakePad){
-  document._boundSnakePad = true;
-  var pads = document.querySelectorAll("[data-snake-dir]");
-  for(var i=0;i<pads.length;i++){
-    (function(btn){
-      addTap(btn, function(){
-        var dir = btn.getAttribute("data-snake-dir");
-        if(dir) snakeSetDir(dir);
-      });
-    })(pads[i]);
-  }
 }
 
 
@@ -8910,9 +8567,10 @@ document.addEventListener("DOMContentLoaded", function(){
 
         <h4>2. 主要 UI 區塊</h4>
         <ul>
-          <li><strong>左側控制面板</strong>：科目、題組、題數、字體大小、提示/解說等開關。</li>
+          <li><strong>左側控制面板</strong>：科目、題組、模式、字體大小、登入/遠端紀錄操作。</li>
           <li><strong>中央遊戲區</strong>：題目、選項、作答回饋、敵我血量與動畫。</li>
-          <li><strong>結算畫面</strong>：顯示答對/答錯、命中率、總分 100。</li>
+          <li><strong>結算畫面</strong>：顯示答對/答錯、命中率、總分 100，並提供獎勵關卡。</li>
+          <li><strong>彈窗</strong>：考前重點整理、遠端成績紀錄。</li>
         </ul>
 
         <h4>3. 題庫資料結構（新增題目最重要）</h4>
@@ -8944,15 +8602,19 @@ document.addEventListener("DOMContentLoaded", function(){
         <ul>
           <li>科目下拉 <code>subjectSel</code>：用題目物件的 <code>subject</code> 欄位過濾。</li>
           <li>題組下拉 <code>unitSel</code>：用題目物件的 <code>topic</code> 欄位過濾。</li>
+          <li>社會題組（全部）會依題幹去除重複題目，避免同題重複出現。</li>
           <li>核心函式：<code>filterBank()</code>，會回傳本回合可抽題的清單。</li>
         </ul>
 
         <h4>6. 遊戲流程（Lifecycle）</h4>
         <ul>
           <li><code>startFromList(list)</code>：開始一回合；建立題單、重置統計、進入第 1 題。</li>
-          <li><code>submitAnswer()</code>：檢查答案→更新統計/血量→寫入錯題本→顯示提示/解說。</li>
-          <li><code>nextQ()</code>：進入下一題；題目結束或死亡時呼叫結算。</li>
+          <li><code>renderQuestion()</code>：渲染題目與選項，初始化計時/按鈕狀態。</li>
+          <li><code>revealAnswer(...)</code>：判斷正誤→更新血量/統計→寫入錯題本→顯示解析。</li>
+          <li><code>next()</code>：進入下一題；結束時呼叫結算。</li>
+          <li><code>finish()</code>：結算並顯示成績/獎勵關卡。</li>
         </ul>
+        <p class="small">練習模式允許「顯示答案」且不扣分；測驗模式會禁用顯示答案。開始後會切換全版面。</p>
 
         <h4>7. 計分（總分 100）</h4>
         <ul>
@@ -8968,7 +8630,36 @@ document.addEventListener("DOMContentLoaded", function(){
           <li>清空錯題本：可在程式中提供按鈕，或手動清除瀏覽器網站資料。</li>
         </ul>
 
-        <h4>9. 如何加入新科目（國語/自然/英文）</h4>
+        <h4>9. 獎勵關卡（Bonus Games）</h4>
+        <ol>
+          <li><code>bonus/tower</code>：疊塔遊戲。</li>
+          <li><code>bonus/2048</code>：2048。</li>
+          <li><code>bonus/memory</code>：記憶翻牌。</li>
+          <li>以 iframe 延遲載入，展開時嘗試進入全螢幕。</li>
+          <li>授權資訊在各資料夾 <code>NOTICE.md</code> / <code>LICENSE</code>。</li>
+        </ol>
+
+        <h4>10. 考前重點整理</h4>
+        <ul>
+          <li>按「輸出考前重點」可生成各科重點 Markdown。</li>
+          <li>邏輯：優先用 <code>explain</code> / <code>hint</code>，不足時補題幹＋答案。</li>
+        </ul>
+
+        <h4>11. 遠端成績紀錄（Google Apps Script）</h4>
+        <ul>
+          <li>登入使用暱稱＋PIN；結算時自動送出成績。</li>
+          <li>設定：<code>REMOTE_ENDPOINT</code>、<code>REMOTE_KEY</code>。</li>
+          <li>本機記住登入：<code>quizRemoteAuthV1</code>。</li>
+          <li>「查看歷史」會從遠端讀取最近成績。</li>
+        </ul>
+
+        <h4>12. 密碼結束與版本</h4>
+        <ul>
+          <li>「密碼結束」使用 <code>BONUS_PASS</code>，可直接解鎖獎勵並結束本局。</li>
+          <li>版本徽章來自 <code>document.lastModified</code>。</li>
+        </ul>
+
+        <h4>13. 如何加入新科目（國語/自然/英文）</h4>
         <ol>
           <li>把新科目的題目轉成上述題目物件格式。</li>
           <li>每題加上 <code>subject: "國語"</code>（或自然/英文）。</li>
