@@ -7065,8 +7065,8 @@ function initSubjectUnitSync(){
 var BONUS_UNLOCK_SCORE = 85;
 var BONUS_PASS = "660726";
 var bonusPassUnlocked = false;
-var REMOTE_ENDPOINT = "https://script.google.com/macros/s/AKfycbyLv4hyAZReYd6i_fZ3utdlvVY7km6-g5XjJ9ttD6bKsUPGL3Cr69JT3pzEX8YqwrPS/exec";
-var REMOTE_KEY = "AKfycbyLv4hyAZReYd6i_fZ3utdlvVY7km6-g5XjJ9ttD6bKsUPGL3Cr69JT3pzEX8YqwrPS";
+var REMOTE_ENDPOINT = "https://script.google.com/macros/s/AKfycbxwY_dqXctwaqoRuX6mVldBZdsCZxQIp5mUZlly3QXvPp2TGvXK-etvEz1Hz5XK4Na6/exec";
+var REMOTE_KEY = "AKfycbxwY_dqXctwaqoRuX6mVldBZdsCZxQIp5mUZlly3QXvPp2TGvXK-etvEz1Hz5XK4Na6";
 var REMOTE_AUTH_KEY = "quizRemoteAuthV1";
 var remoteAuth = { user:"", pin:"", remember:true };
 
@@ -7172,6 +7172,20 @@ function buildRemotePayload(){
     stage: state.stage || 0
   };
 }
+function tryParseJson(text){
+  if(!text) return null;
+  try{ return JSON.parse(text); }catch(e){ return null; }
+}
+function explainRemoteError(respText, status){
+  var msg = "";
+  var lower = String(respText || "").toLowerCase();
+  if(lower.indexOf("<!doctype")!==-1 || lower.indexOf("<html")!==-1){
+    msg = "Apps Script 可能未設為「任何人可存取」或尚未重新部署。";
+  }
+  if(!msg && status) msg = "HTTP " + status;
+  if(!msg && respText) msg = String(respText).slice(0, 140);
+  return msg || "未知錯誤";
+}
 function sendScoreToRemote(){
   if(!isRemoteReady()) return;
   var payload = buildRemotePayload();
@@ -7181,13 +7195,17 @@ function sendScoreToRemote(){
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     }).then(function(res){
-      if(!res || !res.ok) throw new Error("bad");
-      return res.json().catch(function(){ return {}; });
+      if(!res) throw new Error("bad");
+      return res.text().then(function(text){
+        return {ok: res.ok, status: res.status, text: text};
+      });
     }).then(function(data){
-      if(data && data.ok){
+      var parsed = data ? tryParseJson(data.text) : null;
+      if(data && data.ok && parsed && parsed.ok){
         setRemoteStatus("已同步成績", true);
       }else{
-        setRemoteStatus("同步失敗", false);
+        var msg = explainRemoteError(data ? data.text : "", data ? data.status : 0);
+        setRemoteStatus("同步失敗：" + msg, false);
       }
     }).catch(function(){
       setRemoteStatus("同步失敗", false);
@@ -7197,6 +7215,7 @@ function sendScoreToRemote(){
   }
 }
 function openHistoryModal(){
+  ensureHistoryEls();
   if(!historyBackdrop) return;
   historyBackdrop.style.display = "flex";
 }
@@ -7240,6 +7259,7 @@ function formatHistoryList(items){
     + "</tr></thead><tbody>" + rows + "</tbody></table>";
 }
 function fetchRemoteHistory(){
+  ensureHistoryEls();
   if(!isRemoteReady()){
     setRemoteStatus("請先登入", false);
     return;
@@ -7253,19 +7273,26 @@ function fetchRemoteHistory(){
     + "&limit=50";
   try{
     fetch(url).then(function(res){
-      if(!res || !res.ok) throw new Error("bad");
-      return res.json().catch(function(){ return {}; });
+      if(!res) throw new Error("bad");
+      return res.text().then(function(text){
+        return {ok: res.ok, status: res.status, text: text};
+      });
     }).then(function(data){
-      if(data && data.ok){
-        if(historyWrap) historyWrap.innerHTML = formatHistoryList(data.items || []);
+      var parsed = data ? tryParseJson(data.text) : null;
+      if(data && data.ok && parsed && parsed.ok){
+        if(historyWrap) historyWrap.innerHTML = formatHistoryList(parsed.items || []);
       }else{
-        if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+        var msg = explainRemoteError(data ? data.text : "", data ? data.status : 0);
+        if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗：" + escapeHtml(msg) + "</div>";
+        setRemoteStatus("讀取失敗：" + msg, false);
       }
     }).catch(function(){
-      if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+      if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗（網路或權限問題）。</div>";
+      setRemoteStatus("讀取失敗（網路或權限問題）", false);
     });
   }catch(e){
-    if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗。</div>";
+    if(historyWrap) historyWrap.innerHTML = "<div class='small'>讀取失敗（例外）。</div>";
+    setRemoteStatus("讀取失敗（例外）", false);
   }
 }
 function ensureBonusFrameLoaded(){
@@ -7400,6 +7427,29 @@ function ensureReviewEls(){
   btnReviewClose = $("#btnReviewClose");
   btnReviewCopy = $("#btnReviewCopy");
   btnReviewDownload = $("#btnReviewDownload");
+}
+
+function ensureHistoryEls(){
+  if(historyBackdrop && historyWrap) return;
+  historyBackdrop = $("#historyBackdrop");
+  historyWrap = $("#historyWrap");
+  btnHistoryClose = $("#btnHistoryClose");
+  btnHistoryRefresh = $("#btnHistoryRefresh");
+
+  if(btnHistoryClose && !btnHistoryClose._boundHistory){
+    btnHistoryClose._boundHistory = true;
+    addTap(btnHistoryClose, function(){ closeHistoryModal(); });
+  }
+  if(btnHistoryRefresh && !btnHistoryRefresh._boundHistory){
+    btnHistoryRefresh._boundHistory = true;
+    addTap(btnHistoryRefresh, function(){ fetchRemoteHistory(); });
+  }
+  if(historyBackdrop && !historyBackdrop._boundHistoryBackdrop){
+    historyBackdrop._boundHistoryBackdrop = true;
+    historyBackdrop.addEventListener("click", function(e){
+      if(e.target === historyBackdrop) closeHistoryModal();
+    });
+  }
 }
 
 function buildReviewText(){
