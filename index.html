@@ -122,6 +122,10 @@
       text-decoration:none;
       background: rgba(255,255,255,.04);
     }
+    .badge.disabledLink{
+      opacity:.5;
+      pointer-events:none;
+    }
     h1{margin:0;font-size:22px;letter-spacing:.5px}
     .sub{
       margin:6px 0 0;
@@ -692,7 +696,7 @@
             <a class="badge" id="bonusNewTab" href="bonus/tower/index.html" target="_blank" rel="noopener">新視窗開啟</a>
           </div>
         </div>
-        <div class="small" id="bonusNote" style="margin-top:6px;">分數達 85 以上即可解鎖。遊戲來源：iamkun/tower_game（MIT）。</div>
+        <div class="small" id="bonusNote" style="margin-top:6px;">分數達 85 以上可解鎖（本次限玩 1 次、5 分鐘）。遊戲來源：iamkun/tower_game（MIT）。</div>
           <div id="bonusFrameWrap" class="bonusFrameWrap hidden">
           <iframe id="bonusFrame" class="bonusFrame" title="獎勵關卡：疊塔遊戲" loading="lazy" src="about:blank" data-src="bonus/tower/index.html" allow="fullscreen" allowfullscreen></iframe>
             <div id="bonusLoading" class="bonusLoading">載入中...</div>
@@ -710,7 +714,7 @@
             <a class="badge" id="bonus2048NewTab" href="bonus/2048/index.html" target="_blank" rel="noopener">新視窗開啟</a>
           </div>
         </div>
-        <div class="small" id="note2048" style="margin-top:6px;">分數達 85 以上即可解鎖。</div>
+        <div class="small" id="note2048" style="margin-top:6px;">分數達 85 以上可解鎖（本次限玩 1 次、5 分鐘）。</div>
         <div id="bonus2048FrameWrap" class="bonusFrameWrap hidden">
           <iframe id="bonus2048Frame" class="bonusFrame" title="獎勵關卡：2048" loading="lazy" src="about:blank" data-src="bonus/2048/index.html" allow="fullscreen" allowfullscreen></iframe>
           <div id="bonus2048Loading" class="bonusLoading">載入中...</div>
@@ -728,7 +732,7 @@
             <a class="badge" id="bonusMemoryNewTab" href="bonus/memory/index.html" target="_blank" rel="noopener">新視窗開啟</a>
           </div>
         </div>
-        <div class="small" id="noteMemory" style="margin-top:6px;">分數達 85 以上即可解鎖。</div>
+        <div class="small" id="noteMemory" style="margin-top:6px;">分數達 85 以上可解鎖（本次限玩 1 次、5 分鐘）。</div>
         <div id="bonusMemoryFrameWrap" class="bonusFrameWrap hidden">
           <iframe id="bonusMemoryFrame" class="bonusFrame" title="獎勵關卡：記憶翻牌" loading="lazy" src="about:blank" data-src="bonus/memory/index.html" allow="fullscreen" allowfullscreen></iframe>
           <div id="bonusMemoryLoading" class="bonusLoading">載入中...</div>
@@ -6461,10 +6465,24 @@ function addTap(el, handler){
 function shuffle(arr){
   var a = arr.slice();
   for(var i=a.length-1;i>0;i--){
-    var j = Math.floor(Math.random()*(i+1));
+    var j = Math.floor(rand()*(i+1));
     var t = a[i]; a[i]=a[j]; a[j]=t;
   }
   return a;
+}
+
+function makeRng(seed){
+  var x = (seed || 1) >>> 0;
+  return function(){
+    x ^= (x << 13); x >>>= 0;
+    x ^= (x >>> 17); x >>>= 0;
+    x ^= (x << 5); x >>>= 0;
+    return (x >>> 0) / 4294967296;
+  };
+}
+function rand(){
+  if(state && state.rng) return state.rng();
+  return Math.random();
 }
 
 function formatTime(sec){
@@ -6544,7 +6562,7 @@ function promptBonusPassword(){
     if(state && state.running){
       finish();
     }
-    window.alert("已解鎖獎勵關卡。");
+    window.alert("已解鎖獎勵關卡（本次限玩 1 次、5 分鐘）。");
   }else{
     window.alert("密碼錯誤。");
   }
@@ -6791,18 +6809,21 @@ var bonusFrameWrap = $("#bonusFrameWrap");
 var bonusFrame = $("#bonusFrame");
 var bonusLoading = $("#bonusLoading");
 var btnBonusToggle = $("#btnBonusToggle");
+var bonusNewTab = $("#bonusNewTab");
 var bonus2048Wrap = $("#bonus2048Wrap");
 var note2048 = $("#note2048");
 var bonus2048FrameWrap = $("#bonus2048FrameWrap");
 var bonus2048Frame = $("#bonus2048Frame");
 var bonus2048Loading = $("#bonus2048Loading");
 var btn2048Toggle = $("#btn2048Toggle");
+var bonus2048NewTab = $("#bonus2048NewTab");
 var bonusMemoryWrap = $("#bonusMemoryWrap");
 var noteMemory = $("#noteMemory");
 var bonusMemoryFrameWrap = $("#bonusMemoryFrameWrap");
 var bonusMemoryFrame = $("#bonusMemoryFrame");
 var bonusMemoryLoading = $("#bonusMemoryLoading");
 var btnMemoryToggle = $("#btnMemoryToggle");
+var bonusMemoryNewTab = $("#bonusMemoryNewTab");
 var remoteUserIn = $("#remoteUser");
 var remotePinIn = $("#remotePin");
 var remoteRememberCk = $("#remoteRemember");
@@ -6857,10 +6878,20 @@ function makeState(){
     remainingSet:[],
     // hint usage per question
     hintUsed:false,
-    fiftyUsed:false
+    fiftyUsed:false,
+    // rng
+    seed:0,
+    rng:null
   };
 }
 var state = makeState();
+
+function initRunSeed(){
+  var seed = Date.now() >>> 0;
+  if(!seed) seed = 1;
+  state.seed = seed;
+  state.rng = makeRng(seed);
+}
 
 /* --------------------------------------------------------------------------
  * 計分（總分 100）
@@ -7065,15 +7096,104 @@ function initSubjectUnitSync(){
 var BONUS_UNLOCK_SCORE = 85;
 var BONUS_PASS = "660726";
 var bonusPassUnlocked = false;
+var BONUS_SESSION_LIMIT_SEC = 300;
+var bonusTicket = 0;
+var bonusUsed = false;
+var bonusSessionExpiresAt = 0;
+var bonusSessionTimer = null;
+var bonusWindows = [];
 var REMOTE_ENDPOINT = "https://script.google.com/macros/s/AKfycbxwY_dqXctwaqoRuX6mVldBZdsCZxQIp5mUZlly3QXvPp2TGvXK-etvEz1Hz5XK4Na6/exec";
 var REMOTE_KEY = "AKfycbxwY_dqXctwaqoRuX6mVldBZdsCZxQIp5mUZlly3QXvPp2TGvXK-etvEz1Hz5XK4Na6";
 var REMOTE_AUTH_KEY = "quizRemoteAuthV1";
 var remoteAuth = { user:"", pin:"", remember:true };
 
+function isBonusSessionActive(){
+  if(!bonusSessionExpiresAt) return false;
+  if(Date.now() >= bonusSessionExpiresAt){
+    endBonusSession();
+    return false;
+  }
+  return true;
+}
 function isBonusUnlocked(){
-  if(bonusPassUnlocked) return true;
-  if(!state || !state.qlist || !state.qlist.length) return false;
-  return state.score >= BONUS_UNLOCK_SCORE;
+  if(isBonusSessionActive()) return true;
+  return bonusTicket > 0;
+}
+function getBonusNoteText(){
+  if(isBonusSessionActive()){
+    return "本次獎勵已開始，5 分鐘後自動結束。";
+  }
+  if(bonusTicket > 0){
+    return "已解鎖：本次限玩 1 次（5 分鐘）。";
+  }
+  if(bonusUsed){
+    return "本次已使用，請重新考過達 85 才能再玩。";
+  }
+  return "分數達 85 以上可解鎖（每次限玩 1 次、5 分鐘）。";
+}
+function clearBonusTimer(){
+  if(bonusSessionTimer){
+    clearTimeout(bonusSessionTimer);
+    bonusSessionTimer = null;
+  }
+}
+function closeBonusWindows(){
+  if(!bonusWindows || !bonusWindows.length) return;
+  for(var i=0;i<bonusWindows.length;i++){
+    try{
+      if(bonusWindows[i] && !bonusWindows[i].closed){
+        bonusWindows[i].close();
+      }
+    }catch(e){}
+  }
+  bonusWindows = [];
+}
+function resetBonusSession(){
+  bonusTicket = 0;
+  bonusUsed = false;
+  bonusSessionExpiresAt = 0;
+  clearBonusTimer();
+  closeBonusWindows();
+  bonusPassUnlocked = false;
+}
+function startBonusSession(){
+  bonusSessionExpiresAt = Date.now() + BONUS_SESSION_LIMIT_SEC * 1000;
+  bonusUsed = true;
+  bonusTicket = 0;
+  clearBonusTimer();
+  bonusSessionTimer = setTimeout(function(){
+    endBonusSession();
+  }, BONUS_SESSION_LIMIT_SEC * 1000);
+}
+function endBonusSession(){
+  bonusSessionExpiresAt = 0;
+  clearBonusTimer();
+  closeBonusWindows();
+  setBonusOpen(false);
+  set2048Open(false);
+  setMemoryOpen(false);
+  updateBonusUI();
+  setMsg("獎勵時間已結束，請重新考過才可再玩。", "bad");
+}
+function ensureBonusSession(){
+  if(isBonusSessionActive()) return true;
+  if(bonusTicket > 0){
+    startBonusSession();
+    updateBonusUI();
+    return true;
+  }
+  return false;
+}
+function openBonusWindow(url){
+  if(!url) return;
+  var win = null;
+  try{
+    win = window.open(url, "_blank");
+    if(win){
+      try{ win.opener = null; }catch(e){}
+      bonusWindows.push(win);
+    }
+  }catch(e){}
 }
 
 function setRemoteStatus(text, ok){
@@ -7307,6 +7427,10 @@ function ensureBonusFrameLoaded(){
 function setBonusOpen(open){
   if(!bonusFrameWrap || !btnBonusToggle) return;
   if(open){
+    if(!ensureBonusSession()){
+      setMsg("本次獎勵已使用，請重新考過達 85 再玩。", "bad");
+      return;
+    }
     bonusFrameWrap.classList.remove("hidden");
     btnBonusToggle.textContent = "收合遊戲";
     ensureBonusFrameLoaded();
@@ -7332,6 +7456,10 @@ function ensure2048FrameLoaded(){
 function set2048Open(open){
   if(!bonus2048FrameWrap || !btn2048Toggle) return;
   if(open){
+    if(!ensureBonusSession()){
+      setMsg("本次獎勵已使用，請重新考過達 85 再玩。", "bad");
+      return;
+    }
     bonus2048FrameWrap.classList.remove("hidden");
     btn2048Toggle.textContent = "收合遊戲";
     ensure2048FrameLoaded();
@@ -7357,6 +7485,10 @@ function ensureMemoryFrameLoaded(){
 function setMemoryOpen(open){
   if(!bonusMemoryFrameWrap || !btnMemoryToggle) return;
   if(open){
+    if(!ensureBonusSession()){
+      setMsg("本次獎勵已使用，請重新考過達 85 再玩。", "bad");
+      return;
+    }
     bonusMemoryFrameWrap.classList.remove("hidden");
     btnMemoryToggle.textContent = "收合遊戲";
     ensureMemoryFrameLoaded();
@@ -7372,33 +7504,35 @@ function setMemoryOpen(open){
     exitFullscreenIf(bonusMemoryFrameWrap);
   }
 }
+function setBonusLinkEnabled(el, enabled){
+  if(!el) return;
+  if(enabled){
+    el.classList.remove("disabledLink");
+    el.setAttribute("aria-disabled", "false");
+  }else{
+    el.classList.add("disabledLink");
+    el.setAttribute("aria-disabled", "true");
+  }
+}
 function updateBonusUI(){
   if(!bonusWrap) return;
   var unlocked = isBonusUnlocked();
-  var passUnlock = bonusPassUnlocked;
+  var noteText = getBonusNoteText();
   bonusWrap.classList.remove("hidden");
   if(bonusNote){
-    if(unlocked){
-      bonusNote.textContent = passUnlock
-        ? "已解鎖：密碼通過。遊戲來源：iamkun/tower_game（MIT）。"
-        : "已解鎖：分數達 85 以上。遊戲來源：iamkun/tower_game（MIT）。";
-    }else{
-      bonusNote.textContent = "分數達 85 以上即可解鎖。";
-    }
+    bonusNote.textContent = noteText + " 遊戲來源：iamkun/tower_game（MIT）。";
   }
   if(btnBonusToggle) btnBonusToggle.disabled = !unlocked;
+  setBonusLinkEnabled(bonusNewTab, unlocked);
   if(!unlocked) setBonusOpen(false);
 
   if(bonus2048Wrap){
     bonus2048Wrap.classList.remove("hidden");
     if(note2048){
-      if(unlocked){
-        note2048.textContent = passUnlock ? "已解鎖：密碼通過。" : "已解鎖：分數達 85 以上。";
-      }else{
-        note2048.textContent = "分數達 85 以上即可解鎖。";
-      }
+      note2048.textContent = noteText;
     }
     if(btn2048Toggle) btn2048Toggle.disabled = !unlocked;
+    setBonusLinkEnabled(bonus2048NewTab, unlocked);
     if(!unlocked){
       set2048Open(false);
     }
@@ -7407,13 +7541,10 @@ function updateBonusUI(){
   if(bonusMemoryWrap){
     bonusMemoryWrap.classList.remove("hidden");
     if(noteMemory){
-      if(unlocked){
-        noteMemory.textContent = passUnlock ? "已解鎖：密碼通過。" : "已解鎖：分數達 85 以上。";
-      }else{
-        noteMemory.textContent = "分數達 85 以上即可解鎖。";
-      }
+      noteMemory.textContent = noteText;
     }
     if(btnMemoryToggle) btnMemoryToggle.disabled = !unlocked;
+    setBonusLinkEnabled(bonusMemoryNewTab, unlocked);
     if(!unlocked){
       setMemoryOpen(false);
     }
@@ -7572,6 +7703,7 @@ function resetUI(){
   set2048Open(false);
   if(bonusMemoryWrap){ bonusMemoryWrap.classList.add("hidden"); }
   setMemoryOpen(false);
+  resetBonusSession();
   setPlayMode(false);
 }
 
@@ -8253,6 +8385,12 @@ function finish(){
   sumAcc.textContent = "正確率：" + acc + "%（" + state.correct + "/" + total + "）";
   sumTime.textContent = "用時：" + formatTime(usedSec) + "｜最高關卡：" + state.stage;
 
+  var passedBonus = bonusPassUnlocked || state.score >= BONUS_UNLOCK_SCORE;
+  resetBonusSession();
+  if(passedBonus){
+    bonusTicket = 1;
+  }
+
   sendScoreToRemote();
 
 
@@ -8331,8 +8469,11 @@ function startFromList(list){
 addTap(btnStart, function(){
   if(fontSel){ applyFontScale(fontSel.value || "L"); }
   state.mode = modeSel.value;
+  setBonusOpen(false);
   set2048Open(false);
   setMemoryOpen(false);
+  resetBonusSession();
+  initRunSeed();
   var sec = parseInt(secIn.value||"0",10);
   if(isNaN(sec)) sec = 0;
   if(sec<0) sec=0;
@@ -8502,6 +8643,25 @@ if(bonusMemoryFrame && !bonusMemoryFrame._boundLoad){
     setFrameLoading(bonusMemoryLoading, false);
   });
 }
+function bindBonusNewTab(el){
+  if(!el || el._boundBonusNewTab) return;
+  el._boundBonusNewTab = true;
+  el.addEventListener("click", function(e){
+    var href = el.getAttribute("href") || "";
+    if(!ensureBonusSession()){
+      e.preventDefault();
+      setMsg("本次獎勵已使用，請重新考過達 85 再玩。", "bad");
+      return;
+    }
+    if(!href) return;
+    e.preventDefault();
+    openBonusWindow(href);
+    updateBonusUI();
+  });
+}
+bindBonusNewTab(bonusNewTab);
+bindBonusNewTab(bonus2048NewTab);
+bindBonusNewTab(bonusMemoryNewTab);
 
 if(btnReviewNotes && !btnReviewNotes._boundReview){
   btnReviewNotes._boundReview = true;
@@ -8686,6 +8846,7 @@ document.addEventListener("DOMContentLoaded", function(){
           <li><code>bonus/2048</code>：2048。</li>
           <li><code>bonus/memory</code>：記憶翻牌。</li>
           <li>以 iframe 延遲載入，展開時嘗試進入全螢幕。</li>
+          <li>達標後僅能遊玩 1 次，限時 5 分鐘，時間到自動關閉。</li>
           <li>授權資訊在各資料夾 <code>NOTICE.md</code> / <code>LICENSE</code>。</li>
         </ol>
 
